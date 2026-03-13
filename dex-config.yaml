@@ -1,0 +1,33 @@
+# Example DEX configuration using DKMS bridge as upstream OIDC provider
+issuer: http://localhost:5556/dex
+
+storage:
+  type: sqlite3
+  config:
+    file: dex.db
+
+web:
+  http: 0.0.0.0:5556
+
+connectors:
+  - type: oidc
+    id: dkms
+    name: "DKMS (DID Auth)"
+    config:
+      issuer: http://localhost:8900
+      clientID: dex-client
+      clientSecret: dex-secret
+      redirectURI: http://localhost:5556/dex/callback
+      getUserInfo: true
+      insecureEnableGroups: false
+      scopes:
+        - openid
+        - profile
+        - email
+
+staticClients:
+  - id: example-app
+    redirectURIs:
+      - http://localhost:5555/callback
+    name: "Example App"
+    secret: example-app-secret
