@@ -10,3 +10,12 @@ rsa_key_path: null
 
 auth_code_ttl: 300
 id_token_ttl: 3600
+
+# KERI/DKMS witness URLs for OOBI resolution
+witnesses:
+  - "http://localhost:3232"
+  - "http://localhost:3233"
+  - "http://localhost:3234"
+
+# Watcher URL
+watcher: "http://localhost:3235"
