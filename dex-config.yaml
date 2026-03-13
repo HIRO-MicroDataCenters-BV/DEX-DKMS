@@ -1,4 +1,13 @@
-# Example DEX configuration using DKMS bridge as upstream OIDC provider
+# Example DEX configuration using DKMS bridge as upstream OIDC provider.
+#
+# Prerequisites:
+#   1. Start the DKMS infrastructure (witnesses, watcher, mesagkesto):
+#      cd dkms-demo && docker-compose up -d
+#   2. Start the DKMS-DEX bridge:
+#      python bridge.py
+#   3. Start DEX with this config:
+#      dex serve dex-config.yaml
+
 issuer: http://localhost:5556/dex
 
 storage:
@@ -12,7 +21,7 @@ web:
 connectors:
   - type: oidc
     id: dkms
-    name: "DKMS (DID Auth)"
+    name: "DKMS (KERI Auth)"
     config:
       issuer: http://localhost:8900
       clientID: dex-client

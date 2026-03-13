@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DID Authentication</title>
+    <title>KERI Authentication</title>
     <style>
         body { font-family: system-ui, sans-serif; max-width: 520px; margin: 60px auto; padding: 0 20px; }
         h1 { font-size: 1.4em; }
@@ -14,11 +14,12 @@
         button { margin-top: 20px; padding: 10px 24px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; }
         button:hover { background: #1d4ed8; }
         .hint { color: #666; font-size: 0.85em; margin-top: 4px; }
+        .witnesses { font-size: 0.85em; color: #444; margin-top: 8px; }
     </style>
 </head>
 <body>
-    <h1>DID Authentication</h1>
-    <p>Sign the challenge below with your DID private key to authenticate.</p>
+    <h1>KERI / DKMS Authentication</h1>
+    <p>Prove control of your KERI Autonomic Identifier (AID) by signing the challenge below.</p>
 
     <label>Challenge nonce:</label>
     <code>{{ challenge }}</code>
@@ -26,13 +27,25 @@
     <form method="POST" action="/authorize/callback">
         <input type="hidden" name="state" value="{{ state }}">
 
-        <label for="did">Your DID</label>
-        <input type="text" id="did" name="did" placeholder="did:key:z6Mk..." required>
-        <p class="hint">Supported: did:key (Ed25519)</p>
+        <label for="aid">AID (Autonomic Identifier)</label>
+        <input type="text" id="aid" name="aid" placeholder="EaU6JR2nmwyZ-i0d8JZAoTNZH3ULvYAfSVPzhzS6b5CM" required>
+        <p class="hint">Your KERI AID prefix</p>
+
+        <label for="oobi_url">OOBI URL (optional)</label>
+        <input type="text" id="oobi_url" name="oobi_url" placeholder="http://witness:3232/oobi/EaU6JR2...">
+        <p class="hint">Leave empty to resolve via configured witnesses:</p>
+        <div class="witnesses">
+            {% for w in witnesses %}
+            <div>{{ w }}/oobi/{AID}</div>
+            {% endfor %}
+        </div>
 
         <label for="signature">Signature</label>
-        <textarea id="signature" name="signature" placeholder="Hex-encoded Ed25519 signature of the challenge nonce" required></textarea>
-        <p class="hint">Sign the exact challenge nonce bytes (UTF-8) with your Ed25519 private key.</p>
+        <textarea id="signature" name="signature" placeholder="Base64url-encoded Ed25519 signature of the challenge nonce" required></textarea>
+        <p class="hint">
+            Sign the exact challenge nonce (UTF-8 bytes) with your current KERI signing key.<br>
+            Use <code style="display:inline; padding:2px 4px;">dkms data sign</code> or your KERI agent to produce the signature.
+        </p>
 
         <button type="submit">Authenticate</button>
     </form>
