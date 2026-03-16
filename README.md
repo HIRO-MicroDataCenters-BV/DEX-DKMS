@@ -2,6 +2,91 @@
 
 A minimal OIDC Provider that bridges [THCLab's KERI-based DKMS](https://github.com/THCLab/dkms-demo) to [DEX](https://dexidp.io/). DEX connects to this bridge via its built-in OIDC connector.
 
+## Architecture
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                            DKMS-DEX Auth Flow                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+ ┌──────┐        ┌──────┐        ┌──────────────┐        ┌─────────────────┐
+ │ User │        │ DEX  │        │ DKMS-DEX     │        │ KERI Witnesses  │
+ │      │        │:5556 │        │ Bridge :8900 │        │ :3232-3234      │
+ └──┬───┘        └──┬───┘        └──────┬───────┘        └────────┬────────┘
+    │               │                   │                         │
+    │ 1. Login      │                   │                         │
+    ├──────────────>│                   │                         │
+    │               │                   │                         │
+    │               │ 2. Redirect to    │                         │
+    │               │    /authorize     │                         │
+    │<──────────────┤──────────────────>│                         │
+    │               │                   │                         │
+    │               │  3. Challenge     │                         │
+    │               │     nonce page    │                         │
+    │<──────────────────────────────────┤                         │
+    │                                   │                         │
+    │ 4. Submit AID +                   │                         │
+    │    signed nonce                   │                         │
+    ├──────────────────────────────────>│                         │
+    │                                   │                         │
+    │                                   │ 5. GET /oobi/{AID}     │
+    │                                   ├────────────────────────>│
+    │                                   │                         │
+    │                                   │ 6. KERI event (icp/rot)│
+    │                                   │    with signing keys    │
+    │                                   │<────────────────────────┤
+    │                                   │                         │
+    │                                   │ 7. Extract Ed25519 key │
+    │                                   │    from event "k" field│
+    │                                   │    Verify signature    │
+    │                                   │                         │
+    │  8. Redirect with auth code       │                         │
+    │<──────────────────────────────────┤                         │
+    │──────────────>│                   │                         │
+    │               │                   │                         │
+    │               │ 9. POST /token    │                         │
+    │               │    (exchange code)│                         │
+    │               ├──────────────────>│                         │
+    │               │                   │                         │
+    │               │ 10. JWT ID token  │                         │
+    │               │     sub = AID     │                         │
+    │               │<──────────────────┤                         │
+    │               │                   │                         │
+    │               │ 11. GET /userinfo │                         │
+    │               ├──────────────────>│                         │
+    │               │<──────────────────┤                         │
+    │               │                   │                         │
+    │ 12. Authenticated                 │                         │
+    │    (AID identity)                 │                         │
+    │<──────────────┤                   │                         │
+    │               │                   │                         │
+```
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                          Component Overview                                │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                            │
+│  ┌─────────────┐     OIDC      ┌──────────────┐    OOBI/KERI    ┌───────┐ │
+│  │     DEX     │◄─────────────►│  DKMS-DEX    │◄──────────────►│ KERI  │ │
+│  │  (IdP Hub)  │  /.well-known │   Bridge     │  /oobi/{AID}   │Witness│ │
+│  │             │  /token       │  (FastAPI)   │               │  x3   │ │
+│  │             │  /userinfo    │              │               │       │ │
+│  └──────┬──────┘               └──────────────┘               └───────┘ │
+│         │                             │                                   │
+│         │                      ┌──────┴──────┐                            │
+│         │                      │  In-Memory  │                            │
+│         │                      │  ┌────────┐ │                            │
+│  ┌──────┴──────┐               │  │ Codes  │ │                            │
+│  │   Client    │               │  │ Tokens │ │                            │
+│  │    App      │               │  │Challngs│ │                            │
+│  └─────────────┘               │  └────────┘ │                            │
+│                                └─────────────┘                            │
+│                                                                            │
+│  OIDC Layer (RS256 JWT)          KERI Layer (Ed25519 / CESR)              │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
 ## How It Works
 
 1. DEX redirects user to the bridge's `/authorize` endpoint
